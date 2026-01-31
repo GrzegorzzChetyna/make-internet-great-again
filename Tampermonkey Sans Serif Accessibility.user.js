@@ -84,6 +84,54 @@
     '[aria-hidden="true"]',
   ].join(',');
 
+  const materialClassMappings = [
+    {
+      pattern: /(^|\s)material-icons-outlined(\s|$)/i,
+      family: 'Material Icons Outlined',
+    },
+    {
+      pattern: /(^|\s)material-icons-round(\s|$)/i,
+      family: 'Material Icons Round',
+    },
+    {
+      pattern: /(^|\s)material-icons-sharp(\s|$)/i,
+      family: 'Material Icons Sharp',
+    },
+    {
+      pattern: /(^|\s)material-icons-two-tone(\s|$)/i,
+      family: 'Material Icons Two Tone',
+    },
+    {
+      pattern: /(^|\s)material-icons(\s|$)/i,
+      family: 'Material Icons',
+    },
+    {
+      pattern: /(^|\s)material-symbols-outlined(\s|$)/i,
+      family: 'Material Symbols Outlined',
+    },
+    {
+      pattern: /(^|\s)material-symbols-rounded(\s|$)/i,
+      family: 'Material Symbols Rounded',
+    },
+    {
+      pattern: /(^|\s)material-symbols-sharp(\s|$)/i,
+      family: 'Material Symbols Sharp',
+    },
+    {
+      pattern: /(^|\s)material-symbols(\s|$)/i,
+      family: 'Material Symbols Outlined',
+    },
+  ];
+
+  const getMaterialFamilyFromClass = (className) => {
+    if (!className) {
+      return null;
+    }
+    const classString = typeof className === 'string' ? className : className.baseVal || '';
+    const match = materialClassMappings.find((entry) => entry.pattern.test(classString));
+    return match ? match.family : null;
+  };
+
   const hasIconFontFamily = (fontFamily) => {
     if (!fontFamily) {
       return false;
@@ -106,6 +154,12 @@
 
     candidates.forEach((element) => {
       if (element.hasAttribute('data-tm-icon-font')) {
+        return;
+      }
+      const materialFamily = getMaterialFamilyFromClass(element.className);
+      if (materialFamily) {
+        element.setAttribute('data-tm-icon-font', 'true');
+        element.style.setProperty('font-family', materialFamily, 'important');
         return;
       }
       const computed = window.getComputedStyle(element).fontFamily;
@@ -143,9 +197,10 @@
     });
   };
 
+  startIconObserver();
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startIconObserver, { once: true });
-  } else {
-    startIconObserver();
+    document.addEventListener('DOMContentLoaded', () => {
+      protectIconFonts(document.documentElement);
+    }, { once: true });
   }
 })();
