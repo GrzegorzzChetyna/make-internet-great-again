@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sans Serif Accessibility Font Override
 // @namespace    https://example.com/
-// @version      1.1.0
+// @version      1.2.0
 // @description  Replace serif fonts with a readable sans-serif stack for better accessibility.
 // @author       You
 // @match        *://*/*
@@ -36,14 +36,6 @@
   ].join(', ');
 
   const style = `
-    html, body {
-      font-family: ${sansStack} !important;
-    }
-
-    body *:not(code):not(pre):not(kbd):not(samp):not([data-tm-icon-font]) {
-      font-family: ${sansStack} !important;
-    }
-
     code, pre, kbd, samp {
       font-family: ${monoStack} !important;
     }
@@ -140,6 +132,25 @@
     return iconFontFamilies.some((name) => normalized.includes(name));
   };
 
+  const serifFontFamilies = [
+    'serif',
+    'times new roman',
+    'times',
+    'georgia',
+    'garamond',
+    'baskerville',
+    'cambria',
+    'palatino',
+  ];
+
+  const hasSerifFontFamily = (fontFamily) => {
+    if (!fontFamily) {
+      return false;
+    }
+    const normalized = fontFamily.toLowerCase();
+    return serifFontFamilies.some((name) => normalized.includes(name));
+  };
+
   const protectIconFonts = (root) => {
     if (!root || !root.querySelectorAll) {
       return;
@@ -170,6 +181,36 @@
     });
   };
 
+  const applySansToSerif = (root) => {
+    if (!root || !root.querySelectorAll) {
+      return;
+    }
+    const elements = new Set();
+    if (root.matches && root.matches('*')) {
+      elements.add(root);
+    }
+    root.querySelectorAll('*').forEach((node) => {
+      elements.add(node);
+    });
+
+    elements.forEach((element) => {
+      if (element.hasAttribute('data-tm-icon-font')) {
+        return;
+      }
+      const tagName = element.tagName ? element.tagName.toLowerCase() : '';
+      if (['code', 'pre', 'kbd', 'samp'].includes(tagName)) {
+        return;
+      }
+      const computed = window.getComputedStyle(element).fontFamily;
+      if (hasIconFontFamily(computed)) {
+        return;
+      }
+      if (hasSerifFontFamily(computed)) {
+        element.style.setProperty('font-family', sansStack, 'important');
+      }
+    });
+  };
+
   if (typeof GM_addStyle === 'function') {
     GM_addStyle(style);
   } else {
@@ -180,12 +221,14 @@
 
   const startIconObserver = () => {
     protectIconFonts(document.documentElement);
+    applySansToSerif(document.documentElement);
 
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             protectIconFonts(node);
+            applySansToSerif(node);
           }
         });
       });
@@ -201,6 +244,7 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       protectIconFonts(document.documentElement);
+      applySansToSerif(document.documentElement);
     }, { once: true });
   }
 })();
